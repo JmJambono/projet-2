@@ -26,6 +26,16 @@ STOCKS = {
     "HealthcareFocus": ["JNJ", "PFE", "MRK", "AMGN", "ABBV"]
 }
 
+# Données fictives pour le profil utilisateur
+USER_PROFILE = {
+    "balance": 50000,  # Solde total
+    "stocks": [
+        {"ticker": "AAPL", "quantity": 10, "current_value": 175, "profit": 15},
+        {"ticker": "TSLA", "quantity": 5, "current_value": 200, "profit": -10},
+        {"ticker": "GOOGL", "quantity": 8, "current_value": 140, "profit": 20},
+        {"ticker": "NVDA", "quantity": 3, "current_value": 500, "profit": 50},
+    ],
+}
 
 # Fonction pour récupérer les données financières via yfinance
 def fetch_portfolio_data():
@@ -55,23 +65,54 @@ def fetch_portfolio_data():
 
     return new_data  # Renvoie les données mises à jour
 
+def get_best_and_worst_profit(profile):
+    stocks = profile["stocks"]
+    if not stocks:
+        return None, None
+
+    best = max(stocks, key=lambda x: x["profit"])
+    worst = min(stocks, key=lambda x: x["profit"])
+    return best, worst
+
 
 # Initialisation de l'application Dash
 app = Dash(__name__)
 
 # Layout de l'application
 app.layout = html.Div([
+    # En-tête
     html.Header([
         html.H1("Brocoli-Sama", style={'textAlign': 'center', 'color': '#3498DB'}),
         html.P("Votre compagnon de copytrading automatisé.", style={'textAlign': 'center', 'color': '#F0F0F0', 'fontSize': '18px'}),
     ], style={'backgroundColor': '#1F1F1F', 'padding': '20px'}),
 
+    # Profil utilisateur
+    html.Section([
+        html.H2("Profil de l'utilisateur", style={"color": "#000000", "textAlign": "center"}),
+        html.Div([
+            html.Div(f"Solde total : ${USER_PROFILE['balance']:,}", style={"color": "#2ECC71", "fontSize": "24px"}),
+            html.H4("Actions possédées :", style={"color": "#F0F0F0"}),
+            html.Ul([
+                html.Li(f"{stock['ticker']} - Quantité : {stock['quantity']} - Valeur actuelle : ${stock['current_value']} - Profit : {stock['profit']}%",
+                        style={"color": "#3498DB" if stock["profit"] >= 0 else "#E74C3C"})
+                for stock in USER_PROFILE["stocks"]
+            ]),
+            html.Div([
+                html.H4("Action avec le meilleur profit :", style={"color": "#F0F0F0"}),
+                html.P(f"{get_best_and_worst_profit(USER_PROFILE)[0]['ticker']} avec {get_best_and_worst_profit(USER_PROFILE)[0]['profit']}%", style={"color": "#2ECC71"}),
+                html.H4("Action avec le pire profit :", style={"color": "#F0F0F0"}),
+                html.P(f"{get_best_and_worst_profit(USER_PROFILE)[1]['ticker']} avec {get_best_and_worst_profit(USER_PROFILE)[1]['profit']}%", style={"color": "#E74C3C"}),
+            ]),
+        ], style={"padding": "20px", "backgroundColor": "#34495E", "borderRadius": "8px", "marginBottom": "20px"}),
+    ]),
+
+    # Sélection des portefeuilles
     html.Section([
         html.Label("Sélectionnez les portefeuilles à afficher :", style={"color": "#F0F0F0"}),
         dcc.Checklist(
             id="portfolio-selection",
             options=[{"label": name, "value": name} for name in STOCKS.keys()],
-            value=[],  # Par défaut, aucun portefeuille sélectionné
+            value=[],
             inline=True,
             style={"marginBottom": "20px", "color": "#F0F0F0"}
         ),
@@ -80,6 +121,7 @@ app.layout = html.Div([
         dcc.Interval(id="update-interval", interval=600 * 1000, n_intervals=0),
     ], style={"padding": "20px", "backgroundColor": "#2C3E50", "color": "#F0F0F0"}),
 
+    # Footer
     html.Footer([
         html.P("© 2025 Brocoli-Sama. Tous droits réservés.", style={'textAlign': 'center', 'color': '#F0F0F0'}),
     ], style={'backgroundColor': '#1F1F1F', 'padding': '10px'}),
